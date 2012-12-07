@@ -66,8 +66,9 @@ class TestProjectWatcher(TestBase):
         self.observer_mock = self.mox.CreateMock(observers.Observer)
         self.worker_mock = self.mox.CreateMock(core.ProjectBuilder)
 
-        self.observer_mock.schedule(mox.IsA(core.ProjectWatcher),
-            path=self.directory, recursive=True).AndReturn(self.watch)
+        (self.observer_mock.schedule(
+            mox.IsA(core.ProjectWatcher), path=self.directory, recursive=True)
+            .AndReturn(self.watch))
 
     def get_watcher(self):
         return DummyProjectWatcher('test', self.directory, self.worker_mock,
@@ -76,8 +77,7 @@ class TestProjectWatcher(TestBase):
     def test_init(self):
         self.mox.ReplayAll()
 
-        DummyProjectWatcher('test', self.directory, self.worker_mock,
-                            self.observer_mock)
+        self.get_watcher()
 
         self.mox.VerifyAll()
 
