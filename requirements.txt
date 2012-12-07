@@ -1,5 +1,3 @@
-flask
-flask-restful
 watchdog
 python-daemon
 requests
