@@ -158,30 +158,47 @@ class ResultMock(collections.namedtuple('ResultMock', ['succeeed', 'msg'])):
 
 class TestProjectBuilder(TestBase):
 
-    def test_execute_script_internal(self):
-        script = ['echo 1', 'echo 2']
-        results = [ResultMock(True, 'cmd 1'), ResultMock(False, 'cmd 2')]
-        working_dir = 'a directory'
+    def setUp(self):
+        super(TestProjectBuilder, self).setUp()
 
-        # local command
-        self.mox.StubOutWithMock(operations, 'local')
-        for command, result in zip(script, results):
-            operations.local(command, capture=True).AndReturn(result)
+        self.working_dir = 'a directory'
 
-        # lcd
         lcd_mock = self.mox.CreateMockAnything()
         lcd_mock.__enter__()
         lcd_mock.__exit__(mox.IgnoreArg(), mox.IgnoreArg(), mox.IgnoreArg())
         self.mox.StubOutWithMock(context_managers, 'lcd')
-        context_managers.lcd(working_dir).AndReturn(lcd_mock)
+        context_managers.lcd(self.working_dir).AndReturn(lcd_mock)
+
+    def _stubout_local(self, script, results):
+        self.mox.StubOutWithMock(operations, 'local')
+        for command, result in zip(script, results):
+            operations.local(command, capture=True).AndReturn(
+                ResultMock(result, command))
+
+    def test_execute_script_internal(self):
+        script = ['echo 1', 'echo 2']
+        self._stubout_local(script, [True, True])
 
         self.mox.ReplayAll()
 
         worker = core.ProjectBuilder()
-        result = worker._execute_script_internal(working_dir, script)
+        result = worker._execute_script_internal(self.working_dir, script)
 
         self.mox.VerifyAll()
-        self.assertEqual((False, results[-1]), result)
+        self.assertEqual((True, ResultMock(True, script[-1])), result)
+
+    def test_execute_runs_until_first_failure(self):
+        script = ['echo 1', 'echo 2', 'echo 3']
+
+        # only first two commands are passed to operations.local
+        self._stubout_local(script[:2], [True, False])
+        self.mox.ReplayAll()
+
+        worker = core.ProjectBuilder()
+        result = worker._execute_script_internal(self.working_dir, script)
+
+        self.mox.VerifyAll()
+        self.assertEqual((False, ResultMock(False, script[1])), result)
 
 
 if __name__ == '__main__':
