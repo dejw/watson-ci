@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import collections
 import its
 import mox
 import path
@@ -13,6 +14,8 @@ except ImportError:
         raise
     import unittest
 
+from fabric import context_managers
+from fabric import operations
 from watchdog import observers
 
 from . import core
@@ -147,6 +150,39 @@ class TestWatsonServer(TestBase):
         HeadlessWatsonServer().shutdown()
 
         self.mox.VerifyAll()
+
+
+class ResultMock(collections.namedtuple('ResultMock', ['succeeed', 'msg'])):
+    pass
+
+
+class TestProjectBuilder(TestBase):
+
+    def test_execute_script_internal(self):
+        script = ['echo 1', 'echo 2']
+        results = [ResultMock(True, 'cmd 1'), ResultMock(False, 'cmd 2')]
+        working_dir = 'a directory'
+
+        # local command
+        self.mox.StubOutWithMock(operations, 'local')
+        for command, result in zip(script, results):
+            operations.local(command, capture=True).AndReturn(result)
+
+        # lcd
+        lcd_mock = self.mox.CreateMockAnything()
+        lcd_mock.__enter__()
+        lcd_mock.__exit__(mox.IgnoreArg(), mox.IgnoreArg(), mox.IgnoreArg())
+        self.mox.StubOutWithMock(context_managers, 'lcd')
+        context_managers.lcd(working_dir).AndReturn(lcd_mock)
+
+        self.mox.ReplayAll()
+
+        worker = core.ProjectBuilder()
+        result = worker._execute_script_internal(working_dir, script)
+
+        self.mox.VerifyAll()
+        self.assertEqual((False, results[-1]), result)
+
 
 if __name__ == '__main__':
     unittest.main()
