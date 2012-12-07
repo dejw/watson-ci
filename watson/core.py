@@ -59,8 +59,7 @@ class ProjectWatcher(events.FileSystemEventHandler):
         self._name = name
         self._directory = directory
         self._last_status = (None, None)
-        self._notification = pynotify.Notification('')
-        self._notification.set_timeout(5)
+        self._create_notification()
 
         self._worker = worker
         # TODO(dejw): allow to change observing patterns (and recursiveness)
@@ -72,7 +71,11 @@ class ProjectWatcher(events.FileSystemEventHandler):
 
     def on_any_event(self, event):
         status = self._worker.execute_script(self._directory, ['nosetests'])
-        self._show_notification(result)
+        self._show_notification(status)
+
+    def _create_notification(self):
+        self._notification = pynotify.Notification('')
+        self._notification.set_timeout(5)
 
     def _show_notification(self, status):
         succeeed, result = status
