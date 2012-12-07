@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import args
 import xmlrpclib
 import yaml
 
+from tornado import options
+
 from . import core
+from . import daemon
 
 
 class WatsonClient(xmlrpclib.ServerProxy):
@@ -31,4 +35,37 @@ class WatsonClient(xmlrpclib.ServerProxy):
 
 
 def main():
-    pass
+    """usage: watson watch
+
+    Repository watcher - watches for filesystem changes of your project and
+    constantly builds it and keeps you posted about the build status.
+
+    Commands:
+
+      watch     starts watching a project or updates its status if it was
+                already being watched
+
+    """
+
+    if not args.not_files:
+        print main.__doc__.strip()
+
+    options.enable_pretty_logging()
+
+    command = args.not_files[0]
+
+    if command == 'watch':
+        client = WatsonClient()
+
+        try:
+            version = client.hello()
+        except socket.error:
+            logging.warning('Could not connect to Watson server; Spawning one')
+            daemon.WatsonDaemon().perform('start', fork=True)
+            try:
+                version = client.hello()
+            except socket.error:
+                raise core.WatsonError('Could not connect to the local watson '
+                                       'server at %s' % (client.endpoint,))
+
+        client.watch()
