@@ -3,6 +3,7 @@
 import its
 import mox
 import path
+import SimpleXMLRPCServer
 import tempfile
 
 try:
@@ -41,7 +42,7 @@ class TestFindProjectDirectory(unittest.TestCase):
             _ = core.find_project_directory(tempfile.gettempdir())
 
 
-class DummyProjectWatcher(core.ProjectWatcher):
+class HeadlessProjectWatcher(core.ProjectWatcher):
 
     def _create_notification(self):
         pass
@@ -71,8 +72,8 @@ class TestProjectWatcher(TestBase):
             .AndReturn(self.watch))
 
     def get_watcher(self):
-        return DummyProjectWatcher('test', self.directory, self.worker_mock,
-                                   self.observer_mock)
+        return HeadlessProjectWatcher('test', self.directory, self.worker_mock,
+                                      self.observer_mock)
 
     def test_init(self):
         self.mox.ReplayAll()
@@ -101,6 +102,51 @@ class TestProjectWatcher(TestBase):
         self.mox.VerifyAll()
         self.assertEqual(status, watcher._last_status)
 
+
+class HeadlessWatsonServer(core.WatsonServer):
+
+    def _init_pynotify(self):
+        pass
+
+
+class TestWatsonServer(TestBase):
+
+    def setUp(self):
+        super(TestWatsonServer, self).setUp()
+
+        self.mox.StubOutClassWithMocks(SimpleXMLRPCServer,
+                                       "SimpleXMLRPCServer")
+
+        hostport = ("localhost", 0x221B)
+        self.server_mock = SimpleXMLRPCServer.SimpleXMLRPCServer(hostport)
+        self.server_mock.register_instance(mox.IsA(core.WatsonServer))
+        self.server_mock.serve_forever()
+
+    def test_init(self):
+        self.mox.ReplayAll()
+
+        HeadlessWatsonServer()
+
+        self.mox.VerifyAll()
+
+    def test_shutdown(self):
+        self.server_mock.server_close()
+
+        self.mox.StubOutClassWithMocks(core, "ProjectBuilder")
+        worker_mock = core.ProjectBuilder(processes=1)
+        worker_mock.close()
+        worker_mock.join()
+
+        self.mox.StubOutClassWithMocks(observers, "Observer")
+        observer_mock = observers.Observer()
+        observer_mock.stop()
+        observer_mock.join()
+
+        self.mox.ReplayAll()
+
+        HeadlessWatsonServer().shutdown()
+
+        self.mox.VerifyAll()
 
 if __name__ == '__main__':
     unittest.main()

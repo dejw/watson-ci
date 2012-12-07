@@ -2,6 +2,7 @@
 
 import os
 import path
+import SimpleXMLRPCServer
 import xmlrpclib
 
 from fabric import context_managers
@@ -133,7 +134,7 @@ class WatsonServer(object):
         assert pynotify.get_server_caps() is not None
 
     def shutdown(self):
-        self._api.shutdown()
+        self._api.server_close()
 
         self._pool.close()
         self._pool.join()
