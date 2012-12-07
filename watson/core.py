@@ -102,7 +102,7 @@ class ProjectWatcher(events.FileSystemEventHandler):
 
     def _show_notification(self, status):
         succeeed, result = status
-        output = result.stdout + result.stderr
+        output = '\n'.join([result.stdout.strip(), result.stderr.strip()])
 
         if not succeeed:
             self._notification.update(
