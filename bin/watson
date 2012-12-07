@@ -1,0 +1,58 @@
+# -*- coding: utf-8 -*-
+
+"""usage: watson watch
+
+Repository watcher - watches for filesystem changes of your project and
+constantly builds it and keeps you posted about the build status.
+
+Commands:
+
+  watch     starts watching a project or updates its status if it was
+            already being watched
+
+"""
+
+import args
+import logging
+import socket
+import sys
+
+from fabric import operations
+from tornado import options
+
+sys.path.insert(0, '.')
+
+from watson import core
+from watson import daemon
+
+
+def print_usage():
+    print __doc__.strip()
+    return 1
+
+
+def main():
+    if not args.not_files:
+        return print_usage()
+
+    options.enable_pretty_logging()
+
+    command = args.not_files[0]
+
+    if command == 'watch':
+        client = core.WatsonClient()
+
+        try:
+            version = client.hello()
+        except socket.error:
+            logging.warning('Could not connect to Watson server; Spawning one')
+            daemon.WatsonDaemon().perform('start', fork=True)
+            try:
+                version = client.hello()
+            except socket.error:
+                raise core.WatsonError('Could not connect to the local watson server at %s' % (client.endpoint,))
+
+        logging.info('Connected to Watson version %s', version)
+
+if __name__ == '__main__':
+    sys.exit(main() or 0)
