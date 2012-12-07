@@ -125,10 +125,6 @@ class WatsonServer(object):
         self._api.register_instance(self)
         self._api.serve_forever()
 
-    @classmethod
-    def get_server_proxy(cls):
-        return xmlrpclib.ServerProxy("http://%s:%s/" % ('localhost', 0x221B))
-
     def _init_pynotify(self):
         pynotify.init("Watson")
         assert pynotify.get_server_caps() is not None
@@ -151,3 +147,10 @@ class WatsonServer(object):
         name = directory.name
         self._project[name] = ProjectWatcher(name, directory, self._pool,
                                              self._observer)
+
+
+class WatsonClient(xmlrpclib.ServerProxy):
+
+    def __init__(self):
+        super(WatsonClient, self).__init__(
+            "http://%s:%s/" % ('localhost', 0x221B))
