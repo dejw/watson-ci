@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import atexit
 import logging
 import os
 import path
@@ -99,6 +100,10 @@ class ProjectWatcher(events.FileSystemEventHandler):
         import pynotify
         self._notification = pynotify.Notification('')
         self._notification.set_timeout(5)
+        atexit.register(self._hide_notification)
+
+    def _hide_notification(self):
+        self._notification.close()
 
     def _show_notification(self, status):
         succeeed, result = status
