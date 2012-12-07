@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+
 import atexit
 import logging
 import os
@@ -11,20 +13,17 @@ from fabric import context_managers
 from fabric import decorators
 from fabric import operations
 from multiprocessing import pool
-from stuf.collects import ChainMap
+
 from watchdog import events
 from watchdog import observers
+
+from . import config
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 
 
 CONFIG_FILENAME = '.watson.yaml'
 DEFAULT_PROJECT_INDICATORS = [CONFIG_FILENAME, '.vip', 'setup.py']
-
-DEFAULT_CONFIG = {
-    'ignore': ['.git'],
-    'build_timeout': 5
-}
 
 
 class WatsonError(StandardError):
@@ -68,25 +67,6 @@ def get_project_name(working_dir):
     return path.path(working_dir).name
 
 
-class WatsonConfig(ChainMap):
-
-    _KEYS_TO_WRAP = ['ignore', 'script']
-
-    def __init__(self, config):
-        super(WatsonConfig, self).__init__(config, DEFAULT_CONFIG)
-
-    def __getitem__(self, item):
-        value = super(WatsonConfig, self).__getitem__(item)
-
-        if item in self._KEYS_TO_WRAP and not isinstance(value, list):
-            value = [value]
-
-        return value
-
-    def __getattr__(self, attr):
-        return self.__getitem__(attr)
-
-
 class ProjectWatcher(events.FileSystemEventHandler):
 
     # TODO(dejw): should expose some stats (like how many times it was
@@ -113,8 +93,8 @@ class ProjectWatcher(events.FileSystemEventHandler):
     def script(self):
         return self._config['script']
 
-    def set_config(self, config):
-        self._config = WatsonConfig(config)
+    def set_config(self, user_config):
+        self._config = config.ProjectConfig(user_config)
 
         if self._build_timer is not None:
             self._build_timer.cancel()
