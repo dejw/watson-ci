@@ -19,6 +19,11 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
 CONFIG_FILENAME = '.watson.yaml'
 DEFAULT_PROJECT_INDICATORS = [CONFIG_FILENAME, '.vip', 'setup.py']
 
+DEFAULT_CONFIG = {
+    'ignore': ['.git'],
+    'build_timeout': 5
+}
+
 
 class WatsonError(StandardError):
     pass

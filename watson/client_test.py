@@ -16,14 +16,13 @@ class TestWatsonClient(test_helper.TestBase):
     def test_watch(self):
         working_dir = path.path(__file__).dirname()
         working_dir /= '../fixtures/project1/some_dir'
-
-        config = yaml.load(open(working_dir / '..' / core.CONFIG_FILENAME))
-        config['name'] = 'project1'
-        config['script'] = [config['script']]
+        project_dir = unicode((working_dir / '..').abspath())
 
         cl = client.WatsonClient()
+        config = cl.load_config(working_dir / '..' / core.CONFIG_FILENAME)
+
         cl.add_project = self.mox.CreateMockAnything()
-        cl.add_project((working_dir / '..').abspath(), config)
+        cl.add_project(project_dir, config)
 
         self.mox.ReplayAll()
 
