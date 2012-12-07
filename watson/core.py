@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import logging
 import os
 import path
 import SimpleXMLRPCServer
@@ -75,6 +76,7 @@ class ProjectWatcher(events.FileSystemEventHandler):
         self._show_notification(status)
 
     def _create_notification(self):
+        import pynotify
         self._notification = pynotify.Notification('')
         self._notification.set_timeout(5)
 
@@ -124,16 +126,24 @@ class WatsonServer(object):
         self._init_pynotify()
 
         # TODO(dejw): read (host, port) from config in user's directory
-        self._api = SimpleXMLRPCServer.SimpleXMLRPCServer(
-            ('localhost', 0x221B))
+        hostport = ('localhost', 0x221B)
+        self._api = SimpleXMLRPCServer.SimpleXMLRPCServer(hostport)
         self._api.register_instance(self)
+
+        logging.info('Server listening on %s' % (hostport,))
         self._api.serve_forever()
 
     def _init_pynotify(self):
-        pynotify.init("Watson")
+        logging.info('Configuring pynotify')
+        import pynotify
+        pynotify.init('Watson')
         assert pynotify.get_server_caps() is not None
 
+    def hello(self):
+        return 'World!'
+
     def shutdown(self):
+        logging.info('Shuting down')
         self._api.server_close()
 
         self._pool.close()
@@ -156,5 +166,5 @@ class WatsonServer(object):
 class WatsonClient(xmlrpclib.ServerProxy):
 
     def __init__(self):
-        super(WatsonClient, self).__init__(
-            "http://%s:%s/" % ('localhost', 0x221B))
+        self.endpoint = ('localhost', 0x221B)
+        xmlrpclib.ServerProxy.__init__(self, "http://%s:%s/" % self.endpoint)
