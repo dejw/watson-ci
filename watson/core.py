@@ -19,7 +19,7 @@ from watchdog import observers
 
 from . import config
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)s %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
 
 
 CONFIG_FILENAME = '.watson.yaml'
@@ -96,24 +96,35 @@ class ProjectWatcher(events.FileSystemEventHandler):
     def set_config(self, user_config):
         self._config = config.ProjectConfig(user_config)
 
+        # Set next build timeout to 0, when configuration is fresh in order not
+        # to wait too long for the first build.
+        self._reset_build_timer(0)
+
+    def _reset_build_timer(self, timeout=None):
         if self._build_timer is not None:
             self._build_timer.cancel()
 
-        self._build_timer = threading.Timer(self._config['build_timeout'],
-                                            self.build)
+        if timeout is None:
+            timeout = self._config['build_timeout']
+
+        self._build_timer = threading.Timer(timeout, self.build)
 
     def shutdown(self, observer):
         observer.unschedule(self._watch)
 
     def on_any_event(self, event):
         logging.info(repr(event))
-        self._schedule_building()
+        self.schedule_build()
 
-    def schedule_building(self):
-        self._build_timer.cancel()
+    def schedule_build(self):
+        """Schedules a building process in configured timeout."""
+        logging.debug('Scheduling a build in %ss', self._build_timer.interval)
+
+        self._reset_build_timer()
         self._build_timer.start()
 
     def build(self):
+        """Builds the project and shows notification on result."""
         logging.info('Building %s (%s)', self.name, self.working_dir)
         status = self._worker.execute_script(self.working_dir, self.script)
         self._show_notification(status)
@@ -211,4 +222,4 @@ class WatsonServer(object):
         else:
             self._projects[project_name].set_config(config)
 
-        self._projects[project_name].schedule_building()
+        self._projects[project_name].schedule_build()
