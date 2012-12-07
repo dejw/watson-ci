@@ -61,8 +61,10 @@ class ProjectWatcher(events.FileSystemEventHandler):
     # TODO(dejw): should expose some stats (like how many times it was
     #             notified) or how many times it succeeed in testing etc.
 
-    def __init__(self, working_dir, worker, observer):
+    def __init__(self, config, working_dir, worker, observer):
         self.working_dir = working_dir
+        self.set_config(config)
+
         self._last_status = (None, None)
         self._create_notification()
 
@@ -181,6 +183,7 @@ class WatsonServer(object):
         project_name = config['name']
         if project_name not in self._projects:
             self._projects[project_name] = ProjectWatcher(
-                working_dir, self._worker, self._observer)
+                config, working_dir, self._worker, self._observer)
 
-        self._projects[project_name].set_config(config)
+        else:
+            self._projects[project_name].set_config(config)

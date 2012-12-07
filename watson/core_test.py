@@ -60,8 +60,8 @@ class TestProjectWatcher(test_helper.TestBase):
             mox.IsA(core.ProjectWatcher), path=self.directory, recursive=True)
             .AndReturn(self.watch))
 
-    def get_watcher(self):
-        return HeadlessProjectWatcher(self.directory,
+    def get_watcher(self, config=None):
+        return HeadlessProjectWatcher(config or {}, self.directory,
                                       self.worker_mock, self.observer_mock)
 
     def test_init(self):
@@ -85,9 +85,7 @@ class TestProjectWatcher(test_helper.TestBase):
             .AndReturn(status))
         self.mox.ReplayAll()
 
-        watcher = self.get_watcher()
-        watcher.set_config({'name': 'test', 'script': ['nosetests']})
-
+        watcher = self.get_watcher({'name': 'test', 'script': ['nosetests']})
         watcher.build()
 
         self.mox.VerifyAll()
