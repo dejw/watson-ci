@@ -5,11 +5,13 @@ import logging
 import os
 import path
 import SimpleXMLRPCServer
+import threading
 
 from fabric import context_managers
 from fabric import decorators
 from fabric import operations
 from multiprocessing import pool
+from stuf.collects import ChainMap
 from watchdog import events
 from watchdog import observers
 
@@ -61,12 +63,39 @@ def find_project_directory(start=".", look_for=None):
     raise WatsonError('%s does not look like a project subdirectory' % start)
 
 
+def get_project_name(working_dir):
+    """Returns a project name from given working directory."""
+    return path.path(working_dir).name
+
+
+class WatsonConfig(ChainMap):
+
+    _KEYS_TO_WRAP = ['ignore', 'script']
+
+    def __init__(self, config):
+        super(WatsonConfig, self).__init__(config, DEFAULT_CONFIG)
+
+    def __getitem__(self, item):
+        value = super(WatsonConfig, self).__getitem__(item)
+
+        if item in self._KEYS_TO_WRAP and not isinstance(value, list):
+            value = [value]
+
+        return value
+
+    def __getattr__(self, attr):
+        return self.__getitem__(attr)
+
+
 class ProjectWatcher(events.FileSystemEventHandler):
 
     # TODO(dejw): should expose some stats (like how many times it was
     #             notified) or how many times it succeeed in testing etc.
 
     def __init__(self, config, working_dir, worker, observer):
+        self._build_timer = None
+
+        self.name = get_project_name(working_dir)
         self.working_dir = working_dir
         self.set_config(config)
 
@@ -81,22 +110,28 @@ class ProjectWatcher(events.FileSystemEventHandler):
         logging.info('Observing %s', working_dir)
 
     @property
-    def name(self):
-        return self._config['name']
-
-    @property
     def script(self):
         return self._config['script']
+
+    def set_config(self, config):
+        self._config = WatsonConfig(config)
+
+        if self._build_timer is not None:
+            self._build_timer.cancel()
+
+        self._build_timer = threading.Timer(self._config['build_timeout'],
+                                            self.build)
 
     def shutdown(self, observer):
         observer.unschedule(self._watch)
 
     def on_any_event(self, event):
         logging.info(repr(event))
-        self.build()
+        self._schedule_building()
 
-    def set_config(self, config):
-        self._config = config
+    def schedule_building(self):
+        self._build_timer.cancel()
+        self._build_timer.start()
 
     def build(self):
         logging.info('Building %s (%s)', self.name, self.working_dir)
@@ -107,6 +142,9 @@ class ProjectWatcher(events.FileSystemEventHandler):
         import pynotify
         self._notification = pynotify.Notification('')
         self._notification.set_timeout(5)
+
+        # FIXME(dejw): should actually disable all projects and remove
+        #      notifications
         atexit.register(self._hide_notification)
 
     def _hide_notification(self):
@@ -181,14 +219,16 @@ class WatsonServer(object):
         self._observer.stop()
         self._observer.join()
 
-    # TODO(dejw): handle config file case
     def add_project(self, working_dir, config):
         logging.info('Adding a project: %s', working_dir)
 
-        project_name = config['name']
+        project_name = get_project_name(working_dir)
+
         if project_name not in self._projects:
             self._projects[project_name] = ProjectWatcher(
                 config, working_dir, self._worker, self._observer)
 
         else:
             self._projects[project_name].set_config(config)
+
+        self._projects[project_name].schedule_building()
