@@ -45,6 +45,9 @@ class WatsonDaemon(object):
         self.pidfile_timeout = 0
 
     def run(self):
+        from tornado import options
+        options.enable_pretty_logging()
+
         self._server = core.WatsonServer()
 
     def perform(self, action, fork=False):

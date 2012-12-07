@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import args
+import logging
+import socket
 import xmlrpclib
 import yaml
 
@@ -14,7 +16,8 @@ class WatsonClient(xmlrpclib.ServerProxy):
 
     def __init__(self):
         self.endpoint = ('localhost', 0x221B)
-        xmlrpclib.ServerProxy.__init__(self, 'http://%s:%s/' % self.endpoint)
+        xmlrpclib.ServerProxy.__init__(self, 'http://%s:%s/' % self.endpoint,
+                                       allow_none=True)
 
     def watch(self, working_dir="."):
         project_dir = core.find_project_directory(working_dir)
@@ -27,11 +30,12 @@ class WatsonClient(xmlrpclib.ServerProxy):
             config = yaml.load(f)
 
         # Normalize config
-        config.setdefault('name', project_dir.name)
+        config.setdefault('name', unicode(project_dir.name))
         if not isinstance(config['script'], list):
             config['script'] = [config['script']]
 
-        self.add_project(working_dir, config)
+        # TODO(dejw): write a test for marshaling path.path objects
+        self.add_project(unicode(project_dir), config)
 
 
 def main():
@@ -69,3 +73,6 @@ def main():
                                        'server at %s' % (client.endpoint,))
 
         client.watch()
+
+if __name__ == '__main__':
+    main()

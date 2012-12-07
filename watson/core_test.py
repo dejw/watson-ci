@@ -109,7 +109,8 @@ class TestWatsonServer(test_helper.TestBase):
                                        "SimpleXMLRPCServer")
 
         hostport = ("localhost", 0x221B)
-        self.server_mock = SimpleXMLRPCServer.SimpleXMLRPCServer(hostport)
+        self.server_mock = SimpleXMLRPCServer.SimpleXMLRPCServer(
+            hostport, allow_none=True)
         self.server_mock.register_instance(mox.IsA(core.WatsonServer))
         self.server_mock.serve_forever()
 
@@ -123,13 +124,9 @@ class TestWatsonServer(test_helper.TestBase):
     def test_shutdown(self):
         self.server_mock.server_close()
 
-        self.mox.StubOutClassWithMocks(core, "ProjectBuilder")
-        worker_mock = core.ProjectBuilder(processes=1)
-        worker_mock.close()
-        worker_mock.join()
-
         self.mox.StubOutClassWithMocks(observers, "Observer")
         observer_mock = observers.Observer()
+        observer_mock.start()
         observer_mock.stop()
         observer_mock.join()
 
@@ -140,7 +137,7 @@ class TestWatsonServer(test_helper.TestBase):
         self.mox.VerifyAll()
 
 
-class ResultMock(collections.namedtuple('ResultMock', ['succeeed', 'msg'])):
+class ResultMock(collections.namedtuple('ResultMock', ['succeeded', 'msg'])):
     pass
 
 
