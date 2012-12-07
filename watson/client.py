@@ -29,5 +29,6 @@ class WatsonClient(xmlrpclib.ServerProxy):
 
         self.add_project(working_dir, config)
 
+
 def main():
     pass

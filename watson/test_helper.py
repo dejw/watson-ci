@@ -10,6 +10,7 @@ except ImportError:
         raise
     import unittest
 
+
 class TestBase(unittest.TestCase):
 
     def setUp(self):
@@ -17,3 +18,4 @@ class TestBase(unittest.TestCase):
 
     def tearDown(self):
         self.mox.UnsetStubs()
+        self.mox.ResetAll()

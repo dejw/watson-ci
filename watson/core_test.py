@@ -16,7 +16,6 @@ from . import test_helper
 from .test_helper import unittest
 
 
-
 class TestFindProjectDirectory(unittest.TestCase):
 
     def test_simple(self):

@@ -170,9 +170,8 @@ class WatsonServer(object):
         project_name = config['name']
 
         if project_name not in self._projects:
-            self._projects[project_name] = ProjectWatcher(working_dir,
-                self._pool, self._observer)
+            self._projects[project_name] = ProjectWatcher(
+                working_dir, self._pool, self._observer)
 
         self._projects[project_name].set_config(config)
         self._projects[project_name].build()
-
