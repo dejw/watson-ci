@@ -7,27 +7,14 @@ import path
 import SimpleXMLRPCServer
 import tempfile
 
-try:
-    import unittest2 as unittest
-except ImportError:
-    if not its.py27:
-        raise
-    import unittest
-
 from fabric import context_managers
 from fabric import operations
 from watchdog import observers
 
 from . import core
+from . import test_helper
+from .test_helper import unittest
 
-
-class TestBase(unittest.TestCase):
-
-    def setUp(self):
-        self.mox = mox.Mox()
-
-    def tearDown(self):
-        self.mox.UnsetStubs()
 
 
 class TestFindProjectDirectory(unittest.TestCase):
@@ -54,7 +41,7 @@ class HeadlessProjectWatcher(core.ProjectWatcher):
         self._last_status = status
 
 
-class TestProjectWatcher(TestBase):
+class TestProjectWatcher(test_helper.TestBase):
 
     @classmethod
     def setUpClass(self):
@@ -75,8 +62,8 @@ class TestProjectWatcher(TestBase):
             .AndReturn(self.watch))
 
     def get_watcher(self):
-        return HeadlessProjectWatcher('test', self.directory, self.worker_mock,
-                                      self.observer_mock)
+        return HeadlessProjectWatcher(self.directory,
+                                      self.worker_mock, self.observer_mock)
 
     def test_init(self):
         self.mox.ReplayAll()
@@ -93,14 +80,16 @@ class TestProjectWatcher(TestBase):
 
         self.mox.VerifyAll()
 
-    def test_on_any_event(self):
+    def test_build(self):
         status = (True, None)
         (self.worker_mock.execute_script(self.directory, ['nosetests'])
             .AndReturn(status))
         self.mox.ReplayAll()
 
         watcher = self.get_watcher()
-        watcher.on_any_event(None)
+        watcher.set_config({'name': 'test', 'script': ['nosetests']})
+
+        watcher.build()
 
         self.mox.VerifyAll()
         self.assertEqual(status, watcher._last_status)
@@ -112,7 +101,7 @@ class HeadlessWatsonServer(core.WatsonServer):
         pass
 
 
-class TestWatsonServer(TestBase):
+class TestWatsonServer(test_helper.TestBase):
 
     def setUp(self):
         super(TestWatsonServer, self).setUp()
@@ -156,7 +145,7 @@ class ResultMock(collections.namedtuple('ResultMock', ['succeeed', 'msg'])):
     pass
 
 
-class TestProjectBuilder(TestBase):
+class TestProjectBuilder(test_helper.TestBase):
 
     def setUp(self):
         super(TestProjectBuilder, self).setUp()

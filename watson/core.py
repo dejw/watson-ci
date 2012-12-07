@@ -4,7 +4,6 @@ import logging
 import os
 import path
 import SimpleXMLRPCServer
-import xmlrpclib
 
 from fabric import context_managers
 from fabric import operations
@@ -13,7 +12,8 @@ from watchdog import events
 from watchdog import observers
 
 
-DEFAULT_PROJECT_INDICATORS = ['.watson.yaml', '.vip', 'setup.py']
+CONFIG_FILENAME = '.watson.yaml'
+DEFAULT_PROJECT_INDICATORS = [CONFIG_FILENAME, '.vip', 'setup.py']
 
 
 class WatsonError(StandardError):
@@ -57,22 +57,35 @@ class ProjectWatcher(events.FileSystemEventHandler):
     # TODO(dejw): should expose some stats (like how many times it was
     #             notified) or how many times it succeeed in testing etc.
 
-    def __init__(self, name, directory, worker, observer):
-        self._name = name
-        self._directory = directory
+    def __init__(self, working_dir, worker, observer):
+        self.working_dir = working_dir
         self._last_status = (None, None)
         self._create_notification()
 
         self._worker = worker
+        self._observer = observer
         # TODO(dejw): allow to change observing patterns (and recursiveness)
-        self._watch = observer.schedule(self, path=self._directory,
-                                        recursive=True)
+        self._watch = observer.schedule(self, path=working_dir, recursive=True)
+
+    @property
+    def name(self):
+        return self._config['name']
+
+    @property
+    def script(self):
+        return self._config['script']
 
     def shutdown(self, observer):
         observer.unschedule(self._watch)
 
     def on_any_event(self, event):
-        status = self._worker.execute_script(self._directory, ['nosetests'])
+        self.build()
+
+    def set_config(self, config):
+        self._config = config
+
+    def build(self):
+        status = self._worker.execute_script(self.working_dir, self.script)
         self._show_notification(status)
 
     def _create_notification(self):
@@ -153,18 +166,13 @@ class WatsonServer(object):
         self._observer.join()
 
     # TODO(dejw): handle config file case
-    def add_project(self, directory):
-        directory = path.path(directory)
-        assert directory.isdir()
+    def add_project(self, working_dir, config):
+        project_name = config['name']
 
-        # TODO(dejw): load a name from config if available
-        name = directory.name
-        self._project[name] = ProjectWatcher(name, directory, self._pool,
-                                             self._observer)
+        if project_name not in self._projects:
+            self._projects[project_name] = ProjectWatcher(working_dir,
+                self._pool, self._observer)
 
+        self._projects[project_name].set_config(config)
+        self._projects[project_name].build()
 
-class WatsonClient(xmlrpclib.ServerProxy):
-
-    def __init__(self):
-        self.endpoint = ('localhost', 0x221B)
-        xmlrpclib.ServerProxy.__init__(self, "http://%s:%s/" % self.endpoint)
