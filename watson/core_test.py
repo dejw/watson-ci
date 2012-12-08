@@ -153,6 +153,14 @@ class TestWatsonServer(test_helper.TestBase):
 
         self.mox.VerifyAll()
 
+    def test_hello(self):
+        self.mox.ReplayAll()
+
+        version = HeadlessWatsonServer().hello()
+
+        self.mox.VerifyAll()
+        self.assertIn(core.VERSION, version)
+
 
 class ResultMock(collections.namedtuple('ResultMock', ['succeeded', 'msg'])):
     pass

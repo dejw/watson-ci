@@ -25,6 +25,8 @@ from watchdog import observers
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
 
 
+VERSION = "0.1.0"
+
 CONFIG_FILENAME = '.watson.yaml'
 DEFAULT_PROJECT_INDICATORS = [CONFIG_FILENAME, '.vip', 'setup.py']
 
@@ -337,7 +339,7 @@ class WatsonServer(object):
             logging.error('pynotify not found; notifications disabled')
 
     def hello(self):
-        return 'World!'
+        return 'Watson server %s' % VERSION
 
     def shutdown(self):
         logging.info('Shuting down')

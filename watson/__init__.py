@@ -2,4 +2,4 @@
 
 """Watson is a simple developer-orieted Continous Integration tool."""
 
-VERSION = "0.1.0"
+from .core import VERSION
