@@ -11,22 +11,29 @@ import SimpleXMLRPCServer
 import sched
 import threading
 import time
+import yaml
 
 from fabric import context_managers
 from fabric import decorators
 from fabric import operations
 from multiprocessing import pool
-
+from stuf import collects
 from watchdog import events
 from watchdog import observers
 
-from . import config
 
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
 
 
 CONFIG_FILENAME = '.watson.yaml'
 DEFAULT_PROJECT_INDICATORS = [CONFIG_FILENAME, '.vip', 'setup.py']
+
+DEFAULT_GLOBAL_CONFIG_FILE = path.path('~/.watson/config.yaml').expand()
+DEFAULT_CONFIG = {
+    'endpoint': 'localhost:%s' % 0x221B,
+    'ignore': ['.git/.*', '.*.pyc'],
+    'build_timeout': 3
+}
 
 
 class WatsonError(StandardError):
@@ -68,6 +75,25 @@ def find_project_directory(start=".", look_for=None):
 def get_project_name(working_dir):
     """Returns a project name from given working directory."""
     return path.path(working_dir).name
+
+
+def load_config(config_file):
+    config_file = path.path(config_file).abspath()
+    project_dir = config_file.dirname()
+
+    if not config_file.exists():
+        raise WatsonError('config %s does not exist' % config_file)
+
+    with open(config_file) as f:
+        config = yaml.load(f)
+
+    return config
+
+def load_config_safe(config_file):
+    try:
+        return load_config(config_file)
+    except WatsonError:
+        return {}
 
 
 class EventScheduler(threading.Thread):
@@ -116,6 +142,30 @@ class EventScheduler(threading.Thread):
         logging.info('Event scheduler stopped')
 
 
+class Config(collects.ChainMap):
+
+    _KEYS_TO_WRAP = ['ignore', 'script']
+
+    def __init__(self, config=None):
+        super(Config, self).__init__(config or {}, DEFAULT_CONFIG)
+
+    def __getitem__(self, item):
+        value = super(Config, self).__getitem__(item)
+
+        if item in self._KEYS_TO_WRAP and not isinstance(value, list):
+            value = [value]
+
+        return value
+
+    def push(self, config):
+        new_config = self.new_child()
+        new_config.update(config)
+        return new_config
+
+    def __getattr__(self, attr):
+        return self.__getitem__(attr)
+
+
 class ProjectWatcher(events.FileSystemEventHandler):
 
     # TODO(dejw): should expose some stats (like how many times it was
@@ -146,8 +196,8 @@ class ProjectWatcher(events.FileSystemEventHandler):
     def script(self):
         return self._config['script']
 
-    def set_config(self, user_config):
-        self._config = config.ProjectConfig(user_config)
+    def set_config(self, config):
+        self._config = config
 
     def shutdown(self, observer):
         observer.unschedule(self._watch)
@@ -231,6 +281,7 @@ class ProjectBuilder(object):
 class WatsonServer(object):
 
     def __init__(self):
+        self._config = Config(load_config_safe(DEFAULT_GLOBAL_CONFIG_FILE))
         self._projects = {}
 
         self._builder = ProjectBuilder()
@@ -275,6 +326,7 @@ class WatsonServer(object):
         logging.info('Adding a project: %s', working_dir)
 
         project_name = get_project_name(working_dir)
+        config = self._config.push(config)
 
         if project_name not in self._projects:
             self._projects[project_name] = ProjectWatcher(

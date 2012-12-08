@@ -5,7 +5,7 @@ import logging
 import path
 import socket
 import xmlrpclib
-import yaml
+
 
 from . import core
 from . import daemon
@@ -18,22 +18,10 @@ class WatsonClient(xmlrpclib.ServerProxy):
         xmlrpclib.ServerProxy.__init__(self, 'http://%s:%s/' % self.endpoint,
                                        allow_none=True)
 
-    def load_config(self, config_file):
-        config_file = path.path(config_file).abspath()
-        project_dir = config_file.dirname()
-
-        if not config_file.exists():
-            raise core.WatsonError('config %s does not exist' % config_file)
-
-        with open(config_file) as f:
-            config = yaml.load(f)
-
-        return config
-
     def watch(self, working_dir="."):
         project_dir = core.find_project_directory(working_dir)
         config_file = project_dir / core.CONFIG_FILENAME
-        config = self.load_config(config_file)
+        config = core.load_config(config_file)
 
         # TODO(dejw): write a test for marshaling path.path objects
         self.add_project(unicode(project_dir), config)
