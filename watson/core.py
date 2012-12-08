@@ -185,13 +185,15 @@ class ProjectWatcher(events.FileSystemEventHandler):
     def _show_notification(self, status):
         succeeed, result = status
         output = '\n'.join([result.stdout.strip(), result.stderr.strip()])
+        output = output
 
         if not succeeed:
             self._notification.update(
-                '%s failed' % self.name, output or "No output")
+                'Build of %s has failed' % self.name, output, 'dialog-error')
         else:
-            self._notification.update('%s back to normal' % self.name,
-                                      output)
+            self._notification.update(
+                'Build of %s was successful' % self.name, output,
+                'dialog-apply')
 
         self._notification.show()
         self._last_status = status
