@@ -254,9 +254,12 @@ class ProjectWatcher(events.FileSystemEventHandler):
         self._show_notification(status)
 
     def _create_notification(self):
-        import pynotify
-        self._notification = pynotify.Notification('')
-        self._notification.set_timeout(3)
+        try:
+            import pynotify
+            self._notification = pynotify.Notification('')
+            self._notification.set_timeout(3)
+        except ImportError:
+            pass
 
     def _hide_notification(self):
         self._notification.close()
@@ -326,9 +329,12 @@ class WatsonServer(object):
 
     def _init_pynotify(self):
         logging.info('Configuring pynotify')
-        import pynotify
-        pynotify.init('Watson')
-        assert pynotify.get_server_caps() is not None
+        try:
+            import pynotify
+            pynotify.init('Watson')
+            assert pynotify.get_server_caps() is not None
+        except ImportError:
+            logging.error('pynotify not found; notifications disabled')
 
     def hello(self):
         return 'World!'

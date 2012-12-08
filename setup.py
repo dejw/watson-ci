@@ -4,17 +4,30 @@ import sys
 import os
 
 from setuptools import setup, find_packages
+from setuptools.command.install import install as _install
+
 
 #  Build requirements list
 requirements = open('requirements.txt').readlines()
 
+POST_INSTALL_MESSAGE = """
+Remember to install pynotify to be able to see system notifications about
+build statuses!
+"""
+
 def get_info():
     import watson
-    return watson.VERSION, watson.__doc__.strip()
+    return watson.VERSION, open('README.markdown').read()
 
 version, long_description = get_info()
 
-setup(
+class install(_install):
+    def run(self):
+        _install.run(self)
+        print POST_INSTALL_MESSAGE.strip()
+
+
+kw = dict(
     name='watson-ci',
     version=version,
     url='https://github.com/dejw/watson-ci/',
@@ -27,6 +40,7 @@ setup(
     zip_safe=False,
     platforms='any',
     install_requires=requirements,
+    system_requires=['pynotify'],
     entry_points={
         'console_scripts': [
             'watson = watson.client:main',
@@ -55,3 +69,7 @@ setup(
         'Topic :: Utilities'
     ]
 )
+
+
+if __name__ == '__main__':
+    setup(cmdclass={'install': install}, **kw)
