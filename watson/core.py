@@ -232,13 +232,17 @@ class WatsonServer(object):
         self._init_pynotify()
 
         # TODO(dejw): read (host, port) from config in user's directory
-        hostport = ('localhost', 0x221B)
-        self._api = SimpleXMLRPCServer.SimpleXMLRPCServer(hostport,
-                                                          allow_none=True)
+        self.endpoint = ('localhost', 0x221B)
+        self._api = SimpleXMLRPCServer.SimpleXMLRPCServer(
+            self.endpoint, allow_none=True)
         self._api.register_instance(self)
 
-        logging.info('Server listening on %s' % (hostport,))
+    def _start(self):
+        logging.info('Server listening on %s' % (self.endpoint,))
         self._api.serve_forever()
+
+    def _join(self):
+        self._api.shutdown()
 
     def _init_pynotify(self):
         logging.info('Configuring pynotify')

@@ -45,7 +45,14 @@ class WatsonDaemon(object):
         self.pidfile_timeout = 0
 
     def run(self):
-        self._server = core.WatsonServer()
+        try:
+            server = core.WatsonServer()
+            server._start()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            server.shutdown()
+            server._join()
 
     def perform(self, action, fork=False):
         if not fork or os.fork() == 0:
