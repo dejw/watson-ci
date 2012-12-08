@@ -7,8 +7,6 @@ import socket
 import xmlrpclib
 import yaml
 
-from tornado import options
-
 from . import core
 from . import daemon
 
@@ -56,8 +54,6 @@ def main():
 
     if not args.not_files:
         print main.__doc__.strip()
-
-    options.enable_pretty_logging()
 
     command = args.not_files[0]
 

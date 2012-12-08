@@ -1,6 +1,4 @@
 watchdog
 python-daemon
-requests
 args
-tornado
 stuf
