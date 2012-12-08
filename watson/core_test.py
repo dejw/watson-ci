@@ -112,16 +112,37 @@ class TestWatsonServer(test_helper.TestBase):
         self.server_mock = SimpleXMLRPCServer.SimpleXMLRPCServer(
             hostport, allow_none=True)
         self.server_mock.register_instance(mox.IsA(core.WatsonServer))
-        self.server_mock.serve_forever()
-
-    def test_init_and_shutdown(self):
-        self.server_mock.server_close()
 
         self.mox.StubOutClassWithMocks(observers, "Observer")
-        observer_mock = observers.Observer()
-        observer_mock.start()
-        observer_mock.stop()
-        observer_mock.join()
+        self.observer_mock = observers.Observer()
+
+        self.mox.StubOutClassWithMocks(core, "EventScheduler")
+        self.scheduler_mock = core.EventScheduler()
+
+    def test_init(self):
+        self.mox.ReplayAll()
+
+        HeadlessWatsonServer()
+
+        self.mox.VerifyAll()
+
+    def test_start(self):
+        self.server_mock.serve_forever()
+        self.observer_mock.start()
+        self.scheduler_mock.start()
+
+        self.mox.ReplayAll()
+
+        HeadlessWatsonServer()._start()
+
+        self.mox.VerifyAll()
+
+    def test_shutdown(self):
+        self.server_mock.server_close()
+        self.observer_mock.stop()
+        self.observer_mock.join()
+        self.scheduler_mock.stop()
+        self.scheduler_mock.join()
 
         self.mox.ReplayAll()
 

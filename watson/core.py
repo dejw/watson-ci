@@ -224,11 +224,7 @@ class WatsonServer(object):
 
         self._builder = ProjectBuilder()
         self._observer = observers.Observer()
-        self._observer.start()
-
         self._scheduler = EventScheduler()
-        self._scheduler.start()
-
         self._init_pynotify()
 
         # TODO(dejw): read (host, port) from config in user's directory
@@ -239,6 +235,8 @@ class WatsonServer(object):
 
     def _start(self):
         logging.info('Server listening on %s' % (self.endpoint,))
+        self._scheduler.start()
+        self._observer.start()
         self._api.serve_forever()
 
     def _join(self):
