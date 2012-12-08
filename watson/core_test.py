@@ -39,6 +39,9 @@ class HeadlessProjectWatcher(core.ProjectWatcher):
     def _show_notification(self, status):
         self._last_status = status
 
+    def _hide_notification(self):
+        pass
+
 
 class TestProjectWatcher(test_helper.TestBase):
 
@@ -77,7 +80,7 @@ class TestProjectWatcher(test_helper.TestBase):
         self.observer_mock.unschedule(self.watch)
         self.mox.ReplayAll()
 
-        self.get_watcher().shutdown(self.observer_mock)
+        self.get_watcher().shutdown()
 
         self.mox.VerifyAll()
 

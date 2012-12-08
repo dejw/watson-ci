@@ -206,6 +206,9 @@ class ProjectWatcher(events.FileSystemEventHandler):
 
         logging.info('Observing %s', working_dir)
 
+    def __repr__(self):
+        return '<ProjectWatcher %s(%s)>' % (self.name, self.working_dir)
+
     @property
     def script(self):
         return self._config['script']
@@ -213,11 +216,13 @@ class ProjectWatcher(events.FileSystemEventHandler):
     def set_config(self, config):
         self._config = config
 
-    def shutdown(self, observer):
-        observer.unschedule(self._watch)
+    def shutdown(self):
+        logging.info('Shuting down project: %r', self)
+        self._hide_notification()
+        self._observer.unschedule(self._watch)
 
     def on_any_event(self, event):
-        logging.debug('Event: %s', repr(event))
+        logging.debug('Event: %r', event)
 
         event_path = event.src_path[len(self.working_dir):].lstrip('/')
         for ignore in self._config['ignore']:
@@ -252,10 +257,6 @@ class ProjectWatcher(events.FileSystemEventHandler):
         import pynotify
         self._notification = pynotify.Notification('')
         self._notification.set_timeout(3)
-
-        # FIXME(dejw): should actually disable all projects and remove
-        #      notifications
-        atexit.register(self._hide_notification)
 
     def _hide_notification(self):
         self._notification.close()
@@ -334,6 +335,10 @@ class WatsonServer(object):
 
     def shutdown(self):
         logging.info('Shuting down')
+
+        for project in self._projects.itervalues():
+            project.shutdown()
+
         self._api.server_close()
         self._observer.stop()
         self._scheduler.stop()
