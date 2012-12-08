@@ -7,7 +7,9 @@ import logging
 import os
 import path
 import SimpleXMLRPCServer
+import sched
 import threading
+import time
 
 from fabric import context_managers
 from fabric import decorators
@@ -67,13 +69,59 @@ def get_project_name(working_dir):
     return path.path(working_dir).name
 
 
+class EventScheduler(threading.Thread):
+
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self._sched = sched.scheduler(time.time, time.sleep)
+        self._is_finished = False
+        self._condition = threading.Condition()
+        self._join_event = threading.Event()
+
+    @property
+    def is_finished(self):
+        with self._condition:
+            return self._is_finished
+
+    def schedule(self, event, delay, function):
+        with self._condition:
+            logging.info('Scheduling %s in %ss', function.__name__, delay)
+            self._condition.notify()
+
+            if event is not None:
+                self._sched.cancel(event)
+            return self._sched.enter(delay, 1, function, [])
+
+    def stop(self):
+        with self._condition:
+            logging.info('Stopping event scheduler')
+            self._is_finished = True
+            self._condition.notify()
+
+    def join(self, timeout=None):
+        self._join_event.wait(timeout)
+
+    def run(self):
+        logging.info('Starting event scheduler')
+
+        while not self.is_finished:
+            self._sched.run()
+            with self._condition:
+                if not self._is_finished:
+                    logging.info('Queue is empty')
+                    self._condition.wait()
+
+        self._join_event.set()
+        logging.info('Event scheduler stopped')
+
+
 class ProjectWatcher(events.FileSystemEventHandler):
 
     # TODO(dejw): should expose some stats (like how many times it was
     #             notified) or how many times it succeeed in testing etc.
 
-    def __init__(self, config, working_dir, worker, observer):
-        self._build_timer = None
+    def __init__(self, config, working_dir, scheduler, builder, observer):
+        self._event = None
 
         self.name = get_project_name(working_dir)
         self.working_dir = working_dir
@@ -82,8 +130,10 @@ class ProjectWatcher(events.FileSystemEventHandler):
         self._last_status = (None, None)
         self._create_notification()
 
-        self._worker = worker
+        self._scheduler = scheduler
+        self._builder = builder
         self._observer = observer
+
         # TODO(dejw): allow to change observing patterns (and recursiveness)
         self._watch = observer.schedule(self, path=working_dir, recursive=True)
 
@@ -96,37 +146,28 @@ class ProjectWatcher(events.FileSystemEventHandler):
     def set_config(self, user_config):
         self._config = config.ProjectConfig(user_config)
 
-        # Set next build timeout to 0, when configuration is fresh in order not
-        # to wait too long for the first build.
-        self._reset_build_timer(0)
-
-    def _reset_build_timer(self, timeout=None):
-        if self._build_timer is not None:
-            self._build_timer.cancel()
-
-        if timeout is None:
-            timeout = self._config['build_timeout']
-
-        self._build_timer = threading.Timer(timeout, self.build)
-
     def shutdown(self, observer):
         observer.unschedule(self._watch)
 
     def on_any_event(self, event):
-        logging.info(repr(event))
+        logging.debug('Event: %s', repr(event))
         self.schedule_build()
 
-    def schedule_build(self):
+    def schedule_build(self, timeout=None):
         """Schedules a building process in configured timeout."""
-        logging.debug('Scheduling a build in %ss', self._build_timer.interval)
 
-        self._reset_build_timer()
-        self._build_timer.start()
+        if timeout is None:
+            timeout = self._config['build_timeout']
+
+        logging.debug('Scheduling a build in %ss', timeout)
+        self._event = self._scheduler.schedule(
+            self._event, timeout, self.build)
 
     def build(self):
         """Builds the project and shows notification on result."""
         logging.info('Building %s (%s)', self.name, self.working_dir)
-        status = self._worker.execute_script(self.working_dir, self.script)
+        self._event = None
+        status = self._builder.execute_script(self.working_dir, self.script)
         self._show_notification(status)
 
     def _create_notification(self):
@@ -179,10 +220,14 @@ class ProjectBuilder(object):
 class WatsonServer(object):
 
     def __init__(self):
-        self._worker = ProjectBuilder()
         self._projects = {}
+
+        self._builder = ProjectBuilder()
         self._observer = observers.Observer()
         self._observer.start()
+
+        self._scheduler = EventScheduler()
+        self._scheduler.start()
 
         self._init_pynotify()
 
@@ -208,7 +253,10 @@ class WatsonServer(object):
         logging.info('Shuting down')
         self._api.server_close()
         self._observer.stop()
+        self._scheduler.stop()
+
         self._observer.join()
+        self._scheduler.join()
 
     def add_project(self, working_dir, config):
         logging.info('Adding a project: %s', working_dir)
@@ -217,9 +265,10 @@ class WatsonServer(object):
 
         if project_name not in self._projects:
             self._projects[project_name] = ProjectWatcher(
-                config, working_dir, self._worker, self._observer)
+                config, working_dir, self._scheduler, self._builder,
+                self._observer)
 
         else:
             self._projects[project_name].set_config(config)
 
-        self._projects[project_name].schedule_build()
+        self._projects[project_name].schedule_build(0)

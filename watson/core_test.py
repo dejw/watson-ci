@@ -55,14 +55,16 @@ class TestProjectWatcher(test_helper.TestBase):
 
         self.observer_mock = self.mox.CreateMock(observers.Observer)
         self.worker_mock = self.mox.CreateMock(core.ProjectBuilder)
+        self.scheduler_mock = self.mox.CreateMock(core.EventScheduler)
 
         (self.observer_mock.schedule(
             mox.IsA(core.ProjectWatcher), path=self.directory, recursive=True)
             .AndReturn(self.watch))
 
     def get_watcher(self, config=None):
-        return HeadlessProjectWatcher(config or {}, self.directory,
-                                      self.worker_mock, self.observer_mock)
+        return HeadlessProjectWatcher(
+            config or {}, self.directory, self.scheduler_mock,
+            self.worker_mock, self.observer_mock)
 
     def test_init(self):
         self.mox.ReplayAll()
@@ -112,14 +114,7 @@ class TestWatsonServer(test_helper.TestBase):
         self.server_mock.register_instance(mox.IsA(core.WatsonServer))
         self.server_mock.serve_forever()
 
-    def test_init(self):
-        self.mox.ReplayAll()
-
-        HeadlessWatsonServer()
-
-        self.mox.VerifyAll()
-
-    def test_shutdown(self):
+    def test_init_and_shutdown(self):
         self.server_mock.server_close()
 
         self.mox.StubOutClassWithMocks(observers, "Observer")
