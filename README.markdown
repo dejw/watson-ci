@@ -32,7 +32,8 @@ success and anything else will be considered as failure.
 Commands will be executed with relative to the directory where filesystem
 recently changed.
 
-Example configuration (used by `watson` project isself) can be found [here](https://github.com/dejw/watson-ci/blob/master/.watson.yml).
+Example configuration (used by `watson` project isself) can be found
+[here](https://github.com/dejw/watson-ci/blob/master/.watson.yaml).
 
 ## Usage
 
