@@ -4,7 +4,7 @@ from stuf import collects
 
 DEFAULT_PROJECT_CONFIG = {
     'ignore': ['.git/.*', '.*.pyc'],
-    'build_timeout': 5
+    'build_timeout': 3
 }
 
 
