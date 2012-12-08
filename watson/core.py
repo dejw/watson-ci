@@ -102,10 +102,14 @@ class EventScheduler(threading.Thread):
 
     def __init__(self):
         threading.Thread.__init__(self)
-        self._sched = sched.scheduler(time.time, time.sleep)
+        self._sched = sched.scheduler(time.time, self.delay)
         self._is_finished = False
         self._condition = threading.Condition()
         self._join_event = threading.Event()
+
+    def delay(self, timeout):
+        with self._condition:
+            self._condition.wait(timeout)
 
     @property
     def is_finished(self):
@@ -115,16 +119,19 @@ class EventScheduler(threading.Thread):
     def schedule(self, event, delay, function):
         with self._condition:
             logging.info('Scheduling %s in %ss', function.__name__, delay)
-            self._condition.notify()
-
             if event is not None:
                 self._sched.cancel(event)
+
+            self._condition.notify()
             return self._sched.enter(delay, 1, function, [])
 
     def stop(self):
         with self._condition:
             logging.info('Stopping event scheduler')
             self._is_finished = True
+            for event in self._sched.queue:
+                self._sched.cancel(event)
+
             self._condition.notify()
 
     def join(self, timeout=None):
