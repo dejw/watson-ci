@@ -6,6 +6,7 @@ import atexit
 import logging
 import os
 import path
+import re
 import SimpleXMLRPCServer
 import sched
 import threading
@@ -121,10 +122,12 @@ class ProjectWatcher(events.FileSystemEventHandler):
     #             notified) or how many times it succeeed in testing etc.
 
     def __init__(self, config, working_dir, scheduler, builder, observer):
+        super(ProjectWatcher, self).__init__()
+
         self._event = None
 
         self.name = get_project_name(working_dir)
-        self.working_dir = working_dir
+        self.working_dir = path.path(working_dir)
         self.set_config(config)
 
         self._last_status = (None, None)
@@ -151,6 +154,12 @@ class ProjectWatcher(events.FileSystemEventHandler):
 
     def on_any_event(self, event):
         logging.debug('Event: %s', repr(event))
+
+        event_path = event.src_path[len(self.working_dir):].lstrip('/')
+        for ignore in self._config['ignore']:
+            if re.match(ignore, event_path):
+                return
+
         self.schedule_build()
 
     def schedule_build(self, timeout=None):
@@ -173,7 +182,7 @@ class ProjectWatcher(events.FileSystemEventHandler):
     def _create_notification(self):
         import pynotify
         self._notification = pynotify.Notification('')
-        self._notification.set_timeout(5)
+        self._notification.set_timeout(3)
 
         # FIXME(dejw): should actually disable all projects and remove
         #      notifications
