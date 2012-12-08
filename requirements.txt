@@ -2,3 +2,5 @@ watchdog
 python-daemon
 args
 stuf
+path.py
+fabric
