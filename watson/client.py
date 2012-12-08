@@ -45,6 +45,9 @@ def main():
 
     command = args.not_files[0]
 
+    if command in ['start', 'stop', 'restart']:
+        daemon.WatsonDaemon().perform(command, fork=True)
+
     if command == 'watch':
         client = WatsonClient()
 
