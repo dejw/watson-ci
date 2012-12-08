@@ -89,6 +89,7 @@ def load_config(config_file):
 
     return config
 
+
 def load_config_safe(config_file):
     try:
         return load_config(config_file)
@@ -146,8 +147,10 @@ class Config(collects.ChainMap):
 
     _KEYS_TO_WRAP = ['ignore', 'script']
 
-    def __init__(self, config=None):
-        super(Config, self).__init__(config or {}, DEFAULT_CONFIG)
+    def __init__(self, *configs):
+        if not configs:
+            configs.append(DEFAULT_CONFIG)
+        super(Config, self).__init__(*configs)
 
     def __getitem__(self, item):
         value = super(Config, self).__getitem__(item)
@@ -323,17 +326,21 @@ class WatsonServer(object):
         self._scheduler.join()
 
     def add_project(self, working_dir, config):
-        logging.info('Adding a project: %s', working_dir)
+        try:
+            logging.info('Adding a project: %s', working_dir)
 
-        project_name = get_project_name(working_dir)
-        config = self._config.push(config)
+            project_name = get_project_name(working_dir)
+            config = self._config.push(config)
 
-        if project_name not in self._projects:
-            self._projects[project_name] = ProjectWatcher(
-                config, working_dir, self._scheduler, self._builder,
-                self._observer)
+            if project_name not in self._projects:
+                self._projects[project_name] = ProjectWatcher(
+                    config, working_dir, self._scheduler, self._builder,
+                    self._observer)
 
-        else:
-            self._projects[project_name].set_config(config)
+            else:
+                self._projects[project_name].set_config(config)
 
-        self._projects[project_name].schedule_build(0)
+            self._projects[project_name].schedule_build(0)
+        except:
+            import traceback
+            traceback.print_exc()
