@@ -78,6 +78,7 @@ def get_project_name(working_dir):
 
 
 def load_config(config_file):
+    logging.info('Loading config: %s', config_file)
     config_file = path.path(config_file).abspath()
     project_dir = config_file.dirname()
 
@@ -165,6 +166,9 @@ class Config(collects.ChainMap):
         new_config.update(config)
         return new_config
 
+    def replace(self, config):
+        self.maps[0] = config
+
     def __getattr__(self, attr):
         return self.__getitem__(attr)
 
@@ -212,6 +216,11 @@ class ProjectWatcher(events.FileSystemEventHandler):
         for ignore in self._config['ignore']:
             if re.match(ignore, event_path):
                 return
+
+        # Automatically pickup config changes
+        logging.debug(event_path)
+        if event_path == CONFIG_FILENAME:
+            self._config.replace(load_config(event.src_path))
 
         self.schedule_build()
 
