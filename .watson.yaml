@@ -2,3 +2,7 @@ script:
     - .vip/bin/nosetests
     - .vip/bin/pep8 watson/*.py
 build_timeout: 1
+ignore:
+    - *.pyc
+    - .git/.*
+    - .vip/.*
