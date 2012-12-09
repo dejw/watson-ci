@@ -44,6 +44,9 @@ class WatsonDaemon(object):
         self.stderr_path = WATSON_DIR / 'stderr'
         self.pidfile_timeout = 0
 
+        # Create watson directory if it is not already there
+        WATSON_DIR.mkdir_p()
+
     def run(self):
         server = None
         try:
