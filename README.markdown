@@ -1,5 +1,7 @@
 # Watson CI
 
+[![Build Status](https://travis-ci.org/dejw/watson-ci.png)](https://travis-ci.org/dejw/watson-ci)
+
 `watson` is a simple continuous integration server that helps you build
 your projects constantly while you edit the files.
 
