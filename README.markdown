@@ -1,11 +1,13 @@
 # Watson CI
 
+[![Build Status](https://travis-ci.org/dejw/watson-ci.png)](https://travis-ci.org/dejw/watson-ci)
+
 `watson` is a simple continuous integration server that helps you build
 your projects constantly while you edit the files.
 
 ![dr Watson](http://2.bp.blogspot.com/--OeE_SOXm8s/Tief56DVOVI/AAAAAAAABSs/eUTLMpXrq_I/s1600/dr-watson.png)
 
-(The image above is available on [www.evilspacerobot.com](www.evilspacerobot.com))
+(The image above is available on [www.evilspacerobot.com](http://www.evilspacerobot.com))
 
 ## Philosophy
 
@@ -13,11 +15,11 @@ In its concept `watson` watches for changes made in the filesystem of your
 project, and on this basis, runs configured test (or build) commands to check
 if everything is still fine and all your test pass.
 
-In its usage design it is similar to Travis CI server.
+In its usage design it is similar to [Travis CI](https://github.com/travis-ci/travis-ci) server.
 
 ## Configuration
 
-Each project should provide a file named `.watson.yml` (note the dot) with its
+Each project should provide a file named `.watson.yaml` (note the dot) with its
 configuration, for example:
 
     script:
@@ -26,8 +28,8 @@ configuration, for example:
     ignore:
         - .*.pyc
 
-The only requirement for the script is that it should use an exit code 0 on
-success and anything else will be considered as failure.
+The only requirement is that **the script should use an exit code 0 on
+success** and anything else will be considered as failure.
 
 Commands will be executed with relative to the directory where filesystem
 recently changed.
@@ -41,7 +43,7 @@ To add your project to watson use:
 
     watson watch
 
-in any directory of your project. `.watson.yml` fill be searched up the root
+in any directory of your project. `.watson.yaml` fill be searched up the root
 directory and your project configuration will be updated in the server.
 
 Config changes are detected and picked up automatically.
@@ -52,8 +54,16 @@ status. It uses `pynotify` library to handle it so they look as follows:
 ![](http://i.imgur.com/uInH4.png)  
 ![](http://i.imgur.com/zRG93.png)
 
+### Portability
+
+For now `watson` was tested only under Ubuntu, and does not have any kind of abstraction
+for notification support. Feel free to contribute if you are insterested in other
+notification systems.
+
+## Server management
+
 Also server will be started if needed using configuration in
-`~/.watson/config.yml`.
+`~/.watson/config.yaml`.
 
 You can manage state of the server as well:
 
