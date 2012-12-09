@@ -49,7 +49,7 @@ Config changes are detected and picked up automatically.
 As soon as your project is built, server will show a notification about its
 status. It uses `pynotify` library to handle it so they look as follows:
 
-![](http://i.imgur.com/uInH4.png)
+![](http://i.imgur.com/uInH4.png)  
 ![](http://i.imgur.com/zRG93.png)
 
 Also server will be started if needed using configuration in
