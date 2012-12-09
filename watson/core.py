@@ -25,7 +25,7 @@ from watchdog import observers
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
 
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 
 CONFIG_FILENAME = '.watson.yaml'
 DEFAULT_PROJECT_INDICATORS = [CONFIG_FILENAME, '.vip', 'setup.py']
