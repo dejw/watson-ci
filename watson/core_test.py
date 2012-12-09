@@ -211,5 +211,15 @@ class TestProjectBuilder(test_helper.TestBase):
         self.assertEqual((False, ResultMock(False, script[1])), result)
 
 
+class TestConfig(unittest.TestCase):
+
+    def test_default_config(self):
+        try:
+            core.Config()['ignore']
+            core.Config()['build_timeout']
+        except KeyError:
+            self.fail('Did not expect KeyError with default config')
+
+
 if __name__ == '__main__':
     unittest.main()

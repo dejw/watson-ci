@@ -158,9 +158,10 @@ class Config(collects.ChainMap):
     _KEYS_TO_WRAP = ['ignore', 'script']
 
     def __init__(self, *configs):
-        if not configs:
-            configs.append(DEFAULT_CONFIG)
         super(Config, self).__init__(*configs)
+
+    def __missing__(self, item):
+        return DEFAULT_CONFIG[item]
 
     def __getitem__(self, item):
         value = super(Config, self).__getitem__(item)
@@ -225,18 +226,22 @@ class ProjectWatcher(events.FileSystemEventHandler):
 
     def on_any_event(self, event):
         logging.debug('Event: %r', event)
+        try:
 
-        event_path = event.src_path[len(self.working_dir):].lstrip('/')
-        for ignore in self._config['ignore']:
-            if re.match(ignore, event_path):
-                return
+            event_path = event.src_path[len(self.working_dir):].lstrip('/')
+            for ignore in self._config['ignore']:
+                if re.match(ignore, event_path):
+                    logging.debug('Matched %s pattern; skipping', ignore)
+                    return
 
-        # Automatically pickup config changes
-        logging.debug(event_path)
-        if event_path == CONFIG_FILENAME:
-            self._config.replace(load_config(event.src_path))
+            # Automatically pickup config changes
+            logging.debug(event_path)
+            if event_path == CONFIG_FILENAME:
+                self._config.replace(load_config(event.src_path))
 
-        self.schedule_build()
+            self.schedule_build()
+        except:
+            logging.exception('Error during event handling')
 
     def schedule_build(self, timeout=None):
         """Schedules a building process in configured timeout."""
@@ -360,6 +365,7 @@ class WatsonServer(object):
 
             project_name = get_project_name(working_dir)
             config = self._config.push(config)
+            logging.debug('%r', config.maps)
 
             if project_name not in self._projects:
                 self._projects[project_name] = ProjectWatcher(
