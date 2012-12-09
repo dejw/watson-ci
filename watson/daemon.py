@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import args
 import os
 import path
 import time
@@ -64,3 +65,16 @@ class WatsonDaemon(object):
             _DaemonRunner(self).do_action(action)
         elif fork:
             time.sleep(1)
+
+
+def main():
+    if not args.not_files:
+        return
+
+    command = args.not_files[0]
+
+    if command in ['run']:
+        WatsonDaemon().run()
+
+if __name__ == '__main__':
+    main()
