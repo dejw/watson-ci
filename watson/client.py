@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import args
 import logging
 import path
 import socket
+import sys
 import xmlrpclib
 
 
@@ -39,11 +39,11 @@ def main():
                 already being watched
 
     """
-
-    if not args.not_files:
+    if len(sys.argv) < 2:
         print main.__doc__.strip()
+        return
 
-    command = args.not_files[0]
+    command = sys.argv[1]
 
     if command in ['start', 'stop', 'restart']:
         daemon.WatsonDaemon().perform(command, fork=True)

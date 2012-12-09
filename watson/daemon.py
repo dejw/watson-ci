@@ -2,9 +2,9 @@
 
 from __future__ import absolute_import
 
-import args
 import os
 import path
+import sys
 import time
 
 from daemon import runner
@@ -68,10 +68,10 @@ class WatsonDaemon(object):
 
 
 def main():
-    if not args.not_files:
+    if len(sys.argv) < 2:
         return
 
-    command = args.not_files[0]
+    command = sys.argv[1]
 
     if command in ['run']:
         WatsonDaemon().run()
