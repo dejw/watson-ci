@@ -21,7 +21,7 @@ from stuf import collects
 from watchdog import events
 from watchdog import observers
 
-from . import VERSION
+from . import __version__
 
 
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
@@ -347,7 +347,7 @@ class WatsonServer(object):
             logging.error('pynotify not found; notifications disabled')
 
     def hello(self):
-        return 'Watson server %s' % VERSION
+        return 'Watson server %s' % __version__
 
     def shutdown(self):
         logging.info('Shuting down')

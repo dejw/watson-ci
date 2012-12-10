@@ -159,7 +159,7 @@ class TestWatsonServer(test_helper.TestBase):
         version = HeadlessWatsonServer().hello()
 
         self.mox.VerifyAll()
-        self.assertIn(core.VERSION, version)
+        self.assertIn(core.__version__, version)
 
 
 class ResultMock(collections.namedtuple('ResultMock', ['succeeded', 'msg'])):
