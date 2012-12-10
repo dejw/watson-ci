@@ -17,7 +17,7 @@ build statuses!
 
 def get_info():
     import watson
-    return watson.VERSION, open('README.markdown').read()
+    return watson.__version__, open('README.markdown').read()
 
 version, long_description = get_info()
 
