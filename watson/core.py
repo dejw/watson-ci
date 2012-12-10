@@ -27,8 +27,8 @@ from . import VERSION
 logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
 
 
-CONFIG_FILENAME = '.watson.yaml'
-DEFAULT_PROJECT_INDICATORS = [CONFIG_FILENAME, '.vip', 'setup.py']
+CONFIG_FILENAMES = ['.watson.yaml', '.watson.yml']
+DEFAULT_PROJECT_INDICATORS = ['.vip', 'setup.py'] + CONFIG_FILENAMES
 
 DEFAULT_GLOBAL_CONFIG_FILE = path.path('~/.watson/config.yaml').expand()
 DEFAULT_CONFIG = {

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import first
 import logging
 import path
 import socket
@@ -20,7 +21,14 @@ class WatsonClient(xmlrpclib.ServerProxy):
 
     def watch(self, working_dir="."):
         project_dir = core.find_project_directory(working_dir)
-        config_file = project_dir / core.CONFIG_FILENAME
+
+        config_files = [project_dir / n for n in core.CONFIG_FILENAMES]
+        config_file = first.first(config_files, key=lambda x: x.exists())
+
+        if config_file is None:
+            raise core.WatsonError(
+                'project under %s has no config' % project_dir)
+
         config = core.load_config(config_file)
 
         # TODO(dejw): write a test for marshaling path.path objects

@@ -18,7 +18,8 @@ class TestWatsonClient(test_helper.TestBase):
         working_dir /= '../fixtures/project1/some_dir'
         project_dir = unicode((working_dir / '..').abspath())
 
-        config = core.load_config(working_dir / '..' / core.CONFIG_FILENAME)
+        config = core.load_config(working_dir / '..' /
+                                  core.CONFIG_FILENAMES[0])
 
         cl = client.WatsonClient()
         cl.add_project = self.mox.CreateMockAnything()
