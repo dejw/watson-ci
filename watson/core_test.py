@@ -96,6 +96,19 @@ class TestProjectWatcher(test_helper.TestBase):
         self.mox.VerifyAll()
         self.assertEqual(status, watcher._last_status)
 
+    def test_on_any_event(self):
+        Event = collections.namedtuple('Event', ['src_path'])
+        self.mox.ReplayAll()
+
+        watcher = self.get_watcher({'name': 'test', 'build_timeout': 3,
+                                   'script': [], 'ignore': ['.*.pyc']})
+        watcher.schedule_build = lambda: None
+
+        # when...
+        watcher.on_any_event(Event(self.directory + '/test_file.py'))
+
+        self.mox.VerifyAll()
+
 
 class HeadlessWatsonServer(core.WatsonServer):
 

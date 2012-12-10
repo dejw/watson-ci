@@ -226,23 +226,18 @@ class ProjectWatcher(events.FileSystemEventHandler):
         self._observer.unschedule(self._watch)
 
     def on_any_event(self, event):
-        logging.debug('Event: %r', event)
-        try:
+        event_path = event.src_path[len(self.working_dir):].lstrip('/')
+        for ignore in self._config['ignore']:
+            if re.match(ignore, event_path):
+                logging.debug('Matched %s pattern; skipping', ignore)
+                return
 
-            event_path = event.src_path[len(self.working_dir):].lstrip('/')
-            for ignore in self._config['ignore']:
-                if re.match(ignore, event_path):
-                    logging.debug('Matched %s pattern; skipping', ignore)
-                    return
+        # Automatically pickup config changes
+        logging.debug(event_path)
+        if event_path in CONFIG_FILENAMES:
+            self._config.replace(load_config(event.src_path))
 
-            # Automatically pickup config changes
-            logging.debug(event_path)
-            if event_path == CONFIG_FILENAME:
-                self._config.replace(load_config(event.src_path))
-
-            self.schedule_build()
-        except:
-            logging.exception('Error during event handling')
+        self.schedule_build()
 
     def schedule_build(self, timeout=None):
         """Schedules a building process in configured timeout."""
