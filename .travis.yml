@@ -8,11 +8,13 @@ matrix:
     allow_failures:
         - python: "3.2"
         - python: "2.5"
-install: 
+install:
     - pip install -r requirements.txt --use-mirrors
     - pip install -r dev-requirements.txt --use-mirrors
+    - if [[ $TRAVIS_PYTHON_VERSION == 2* ]]; then pip install --use-mirrors -r requirements-2.txt; fi
+    - if [[ $TRAVIS_PYTHON_VERSION == 3* ]]; then pip install --use-mirrors -r requirements-3.txt; fi
     - pip install -e .
 script:
-    - python -c "import watson.core; print watson.core.VERSION"
+    - python -c "import watson.core; print(watson.core.VERSION)"
     - nosetests
     - pep8 watson/

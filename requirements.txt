@@ -1,5 +1,4 @@
 watchdog
-python-daemon
 stuf
 path.py
 fabric

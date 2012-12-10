@@ -1,0 +1,3 @@
+# Order here is important
+-e git://github.com/mobilewebup/lockfile-0.9.1-py3k.github#egg=lockfile
+-e git://github.com/mobilewebup/python-daemon-1.5.5-py3k.github#egg=python-daemon
