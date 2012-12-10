@@ -24,6 +24,9 @@ class _DaemonRunner(runner.DaemonRunner):
         self.action_funcs[u'restart'] = self._restart
 
     def _start(self):
+        if runner.is_pidfile_stale(self.pidfile):
+            self.pidfile.break_lock()
+
         if self.pidfile.read_pid() is not None:
             raise runner.DaemonRunnerStartFailureError(
                 u"PID file %r already locked" % self.app.pidfile_path)
