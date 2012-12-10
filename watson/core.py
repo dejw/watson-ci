@@ -192,6 +192,7 @@ class ProjectWatcher(events.FileSystemEventHandler):
         super(ProjectWatcher, self).__init__()
 
         self._event = None
+        self._build = 0
 
         self.name = get_project_name(working_dir)
         self.working_dir = path.path(working_dir)
@@ -256,6 +257,7 @@ class ProjectWatcher(events.FileSystemEventHandler):
     def build(self):
         """Builds the project and shows notification on result."""
         logging.info('Building %s (%s)', self.name, self.working_dir)
+        self._build += 1
         self._event = None
         status = self._builder.execute_script(self.working_dir, self.script)
         self._show_notification(status)
@@ -278,11 +280,12 @@ class ProjectWatcher(events.FileSystemEventHandler):
 
         if not succeeed:
             self._notification.update(
-                'Build of %s has failed' % self.name, output, 'dialog-error')
+                'Build #%d of %s has failed' % (self._build, self.name),
+                output, 'dialog-error')
         else:
             self._notification.update(
-                'Build of %s was successful' % self.name, output,
-                'dialog-apply')
+                'Build #%d of %s was successful' % (self._build, self.name),
+                output, 'dialog-apply')
 
         self._notification.show()
         self._last_status = status
