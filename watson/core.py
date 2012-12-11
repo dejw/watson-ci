@@ -24,9 +24,6 @@ from watchdog import observers
 from . import __version__
 
 
-logging.basicConfig(level=logging.DEBUG, format='%(levelname)s %(message)s')
-
-
 CONFIG_FILENAMES = ['.watson.yaml', '.watson.yml']
 DEFAULT_PROJECT_INDICATORS = ['.vip', 'setup.py'] + CONFIG_FILENAMES
 
@@ -199,6 +196,7 @@ class ProjectWatcher(events.FileSystemEventHandler):
         self.set_config(config)
 
         self._last_status = (None, None)
+        self._notification = None
         self._create_notification()
 
         self._scheduler = scheduler
@@ -218,6 +216,7 @@ class ProjectWatcher(events.FileSystemEventHandler):
         return self._config['script']
 
     def set_config(self, config):
+        logging.info('New config for %s', self.name)
         self._config = config
 
     def shutdown(self):
@@ -229,7 +228,8 @@ class ProjectWatcher(events.FileSystemEventHandler):
         event_path = event.src_path[len(self.working_dir):].lstrip('/')
         for ignore in self._config['ignore']:
             if re.match(ignore, event_path):
-                logging.debug('Matched %s pattern; skipping', ignore)
+                logging.debug('%s Matched %s pattern; skipping',
+                              event_path, ignore)
                 return
 
         # Automatically pickup config changes
@@ -251,7 +251,8 @@ class ProjectWatcher(events.FileSystemEventHandler):
 
     def build(self):
         """Builds the project and shows notification on result."""
-        logging.info('Building %s (%s)', self.name, self.working_dir)
+        logging.info('Build %s of %s (%s)', self._build, self.name,
+                     self.working_dir)
         self._build += 1
         self._event = None
         status = self._builder.execute_script(self.working_dir, self.script)
@@ -266,18 +267,26 @@ class ProjectWatcher(events.FileSystemEventHandler):
             pass
 
     def _hide_notification(self):
+        if self._notification is None:
+            return
+
         self._notification.close()
 
     def _show_notification(self, status):
+        if self._notification is None:
+            return
+
         succeeed, result = status
         output = '\n'.join([result.stdout.strip(), result.stderr.strip()])
         output = output
 
         if not succeeed:
+            logging.info('Build #%s failed', self._build)
             self._notification.update(
                 'Build #%d of %s has failed' % (self._build, self.name),
                 output, 'dialog-error')
         else:
+            logging.info('Build #%s succeeded', self._build)
             self._notification.update(
                 'Build #%d of %s was successful' % (self._build, self.name),
                 output, 'dialog-apply')
@@ -296,11 +305,14 @@ class ProjectBuilder(object):
         succeeded = True
         result = None
 
+        logging.info('Executing a script in %s:', working_dir)
         with context_managers.lcd(working_dir):
             for command in script:
+                logging.info(' %s', command)
                 result = operations.local(command, capture=True)
                 succeeded = succeeded and result.succeeded
                 if not succeeded:
+                    logging.info('Build failed')
                     break
 
         return (succeeded, result)
@@ -309,6 +321,8 @@ class ProjectBuilder(object):
 class WatsonServer(object):
 
     def __init__(self):
+        logging.info('Starting watson server %s', __version__)
+
         self._config = Config(load_config_safe(DEFAULT_GLOBAL_CONFIG_FILE))
         self._projects = {}
 
@@ -357,23 +371,21 @@ class WatsonServer(object):
         self._observer.join()
         self._scheduler.join()
 
+        logging.info('Stoppped')
+
     def add_project(self, working_dir, config):
-        try:
-            logging.info('Adding a project: %s', working_dir)
+        logging.info('Adding a project: %s', working_dir)
 
-            project_name = get_project_name(working_dir)
-            config = self._config.push(config)
-            logging.debug('%r', config.maps)
+        project_name = get_project_name(working_dir)
+        config = self._config.push(config)
+        logging.debug('%r', config.maps)
 
-            if project_name not in self._projects:
-                self._projects[project_name] = ProjectWatcher(
-                    config, working_dir, self._scheduler, self._builder,
-                    self._observer)
+        if project_name not in self._projects:
+            self._projects[project_name] = ProjectWatcher(
+                config, working_dir, self._scheduler, self._builder,
+                self._observer)
 
-            else:
-                self._projects[project_name].set_config(config)
+        else:
+            self._projects[project_name].set_config(config)
 
-            self._projects[project_name].schedule_build(0)
-        except:
-            import traceback
-            traceback.print_exc()
+        self._projects[project_name].schedule_build(0)

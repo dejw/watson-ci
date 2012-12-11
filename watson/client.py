@@ -57,6 +57,9 @@ def main():
         daemon.WatsonDaemon().perform(command, fork=True)
 
     if command == 'watch':
+        logging.basicConfig(level=logging.INFO,
+                            format='%(levelname)7s: %(message)s')
+
         client = WatsonClient()
 
         try:
@@ -69,6 +72,7 @@ def main():
             except socket.error:
                 raise core.WatsonError('Could not connect to the local watson '
                                        'server at %s' % (client.endpoint,))
+        logging.info('Connected to %s' % version)
 
         client.watch()
 

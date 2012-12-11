@@ -2,6 +2,7 @@
 
 from __future__ import absolute_import
 
+import logging
 import os
 import path
 import sys
@@ -52,6 +53,10 @@ class WatsonDaemon(object):
         WATSON_DIR.mkdir_p()
 
     def run(self):
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(levelname)-8s %(asctime)s '
+                            '%(filename)s:%(lineno)s] %(message)s')
+
         server = None
         try:
             server = core.WatsonServer()
